@@ -53,3 +53,60 @@ func TestBearerTokenFromRequest(t *testing.T) {
 		})
 	}
 }
+
+// I would call it Test_getCoordinatesFromRequest, but it's needed to follow the code style
+func TestGetCoordinatesFromRequest(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		h           http.Header
+		want        coordinates
+		errExpected bool
+	}{
+		{
+			name:        "happy path",
+			h:           http.Header{CloudFlareLongitude: {"55.751244"}, CloudFlareLatitudeHeader: {"37.618423"}},
+			want:        coordinates{long: 55.751244, lat: 37.618423},
+			errExpected: false,
+		},
+		{
+			name:        "should have the error: no cf-iplongitude and no cf-iplatitude",
+			h:           http.Header{},
+			want:        coordinates{long: 0, lat: 0},
+			errExpected: true,
+		},
+		{
+			name:        "should have the error: no cf-iplongitude",
+			h:           http.Header{CloudFlareLatitudeHeader: {"37.618423"}},
+			want:        coordinates{long: 0, lat: 0},
+			errExpected: true,
+		},
+		{
+			name:        "should have the error: no cf-iplatitude",
+			h:           http.Header{CloudFlareLongitude: {"55.751244"}},
+			want:        coordinates{long: 0, lat: 0},
+			errExpected: true,
+		},
+		{
+			name:        "should have the error: empty value for cf-iplongitude",
+			h:           http.Header{CloudFlareLongitude: {""}, CloudFlareLatitudeHeader: {"37.618423"}},
+			want:        coordinates{long: 0, lat: 0},
+			errExpected: true,
+		},
+		{
+			name:        "should have the error: empty value for cf-iplatitude",
+			h:           http.Header{CloudFlareLongitude: {"55.751244"}, CloudFlareLatitudeHeader: {""}},
+			want:        coordinates{long: 0, lat: 0},
+			errExpected: true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := getCoordinatesFromRequest(&http.Request{Header: tc.h})
+			assert.Equal(t, tc.want, result)
+			if tc.errExpected {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}

@@ -115,6 +115,24 @@ func NewErrAALNotSatisfied(redirectTo string) *ErrAALNotSatisfied {
 	}
 }
 
+// ErrImpossibleTravel is returned when impossible travel occurred among session logins..
+type ErrImpossibleTravel struct {
+	*herodot.DefaultError `json:"error"`
+}
+
+// NewErrImpossibleTravel creates a new ErrImpossibleTravel
+func NewErrImpossibleTravel() *ErrImpossibleTravel {
+	return &ErrImpossibleTravel{
+		DefaultError: herodot.ErrUnauthorized.WithID(text.ErrImpossibleTravelSession).
+			WithError("request is made from impossible to reach location in a given time").
+			WithReason("Sessions logins are too far between each other.."),
+	}
+}
+
+func (e *ErrImpossibleTravel) EnhanceJSONError() interface{} {
+	return e
+}
+
 // Manager handles identity sessions.
 type Manager interface {
 	// UpsertAndIssueCookie stores a session in the database and issues a cookie by calling IssueCookie.
@@ -147,6 +165,8 @@ type Manager interface {
 	// that the user is able to authenticate with it. This means that if a user has a second factor, the user is always
 	// asked to authenticate with it if `highest_available` is set and the session's AAL is `aal1`.
 	DoesSessionSatisfy(r *http.Request, sess *Session, matcher string, opts ...ManagerOptions) error
+
+	DoesSessionSatisfyTravelRestrictions(r *http.Request, sess *Session) error
 
 	// SessionAddAuthenticationMethods adds one or more authentication method to the session.
 	SessionAddAuthenticationMethods(ctx context.Context, sid uuid.UUID, methods ...AuthenticationMethod) error
