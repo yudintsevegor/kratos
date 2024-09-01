@@ -244,7 +244,7 @@ func (s *ManagerHTTP) FetchFromRequest(ctx context.Context, r *http.Request) (_ 
 		return nil, errors.WithStack(NewErrNoCredentialsForSession())
 	}
 
-	se, err := s.r.SessionPersister().GetSessionByToken(ctx, token, ExpandEverything, identity.ExpandDefault)
+	se, err := s.r.SessionPersister().GetSessionByToken(ctx, token, ExpandEverything, identity.ExpandEverything)
 	if err != nil {
 		if errors.Is(err, herodot.ErrNotFound) || errors.Is(err, sqlcon.ErrNoRows) {
 			return nil, errors.WithStack(NewErrNoActiveSessionFound())
@@ -482,6 +482,10 @@ func (s *ManagerHTTP) ActivateSession(r *http.Request, session *Session, i *iden
 		return errors.WithStack(ErrIdentityDisabled.WithDetail("identity_id", i.ID))
 	}
 
+	if err := s.r.IdentityManager().RefreshAvailableAAL(ctx, i); err != nil {
+		return err
+	}
+
 	session.Identity = i
 	session.IdentityID = i.ID
 
@@ -492,10 +496,6 @@ func (s *ManagerHTTP) ActivateSession(r *http.Request, session *Session, i *iden
 
 	session.SetSessionDeviceInformation(r.WithContext(ctx))
 	session.SetAuthenticatorAssuranceLevel()
-
-	if err := s.r.IdentityManager().RefreshAvailableAAL(ctx, session.Identity); err != nil {
-		return err
-	}
 
 	span.SetAttributes(
 		attribute.String("identity.available_aal", session.Identity.InternalAvailableAAL.String),
