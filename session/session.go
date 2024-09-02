@@ -58,6 +58,9 @@ type Device struct {
 	// Geo Location corresponding to the IP Address
 	Location *string `json:"location" faker:"ptr_geo_location" db:"location"`
 
+	// Coordinates coordinates to the IP Address.
+	Coordinates *Coordinates `json:"coordinates" faker:"ptr_coordinates" db:"coordinates"`
+
 	// Time of capture
 	CreatedAt time.Time `json:"-" faker:"-" db:"created_at"`
 
@@ -69,6 +72,11 @@ type Device struct {
 
 func (m Device) TableName(ctx context.Context) string {
 	return "session_devices"
+}
+
+type Coordinates struct {
+	Latitude  float64
+	Longitude float64
 }
 
 // A Session
@@ -130,6 +138,9 @@ type Session struct {
 
 	// Devices has history of all endpoints where the session was used
 	Devices []Device `json:"devices" faker:"-" has_many:"session_devices" fk_id:"session_id"`
+
+	// ContainsImpossibleTravel specifies if a session contains "impossible travel" among its logins.
+	ContainsImpossibleTravel bool `json:"contains_impossible_travel" faker:"contains_impossible_travel" db:"contains_impossible_travel"`
 
 	// IdentityID is a helper struct field for gobuffalo.pop.
 	IdentityID uuid.UUID `json:"-" faker:"-" db:"identity_id"`
@@ -275,6 +286,16 @@ func (s *Session) SetSessionDeviceInformation(r *http.Request) {
 		clientGeoLocation = append(clientGeoLocation, r.Header.Get("Cf-Ipcountry"))
 	}
 	device.Location = pointerx.Ptr(strings.Join(clientGeoLocation, ", "))
+
+	if coords, err := getCoordinatesFromRequest(r); err == nil {
+		device.Coordinates = &Coordinates{
+			Latitude:  coords.lat,
+			Longitude: coords.long,
+		}
+	} else {
+		// TODO: we might want to correctly log it or have some metrics (with alerts) to detect "the issue"
+		//	with CloudFlare headers in advance.
+	}
 
 	s.Devices = append(s.Devices, device)
 }

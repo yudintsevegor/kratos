@@ -106,9 +106,10 @@ type RegistryDefault struct {
 
 	schemaHandler *schema.Handler
 
-	sessionHandler   *session.Handler
-	sessionManager   session.Manager
-	sessionTokenizer *session.Tokenizer
+	sessionHandler         *session.Handler
+	sessionManager         session.Manager
+	sessionTokenizer       *session.Tokenizer
+	sessionTravelValidator session.Validator
 
 	passwordHasher    hash.Hasher
 	passwordValidator password.Validator
@@ -892,4 +893,13 @@ func (m *RegistryDefault) SessionTokenizer() *session.Tokenizer {
 		m.sessionTokenizer = session.NewTokenizer(m)
 	}
 	return m.sessionTokenizer
+}
+
+func (m *RegistryDefault) SessionTravelValidator() session.Validator {
+	if m.sessionTravelValidator == nil {
+		m.sessionTravelValidator = session.NewTravelValidator(
+			session.WithMaxAllowedSpeed(20.0),
+		)
+	}
+	return m.sessionTravelValidator
 }

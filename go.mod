@@ -104,13 +104,20 @@ require (
 )
 
 require (
+	github.com/kellydunn/golang-geo v0.7.0
+	github.com/wI2L/jsondiff v0.6.0
+)
+
+require (
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
 	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137 // indirect
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/cortesi/moddwatch v0.1.0 // indirect
 	github.com/cortesi/termlog v0.0.0-20210222042314-a1eec763abec // indirect
+	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5 // indirect
+	github.com/kylelemons/go-gypsy v1.0.0 // indirect
 	github.com/rjeczalik/notify v0.9.3 // indirect
-	github.com/wI2L/jsondiff v0.6.0 // indirect
+	github.com/ziutek/mymysql v1.5.4 // indirect
 	golang.org/x/term v0.22.0 // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6 // indirect
 	mvdan.cc/sh/v3 v3.6.0 // indirect

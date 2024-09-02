@@ -5,6 +5,7 @@ package session
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -55,6 +56,7 @@ type (
 		x.TransactionPersistenceProvider
 		PersistenceProvider
 		sessiontokenexchange.PersistenceProvider
+		TravelValidator
 	}
 	ManagerHTTP struct {
 		cookieName func(ctx context.Context) string
@@ -256,6 +258,17 @@ func (s *ManagerHTTP) FetchFromRequest(ctx context.Context, r *http.Request) (_ 
 		return nil, errors.WithStack(NewErrNoActiveSessionFound())
 	}
 
+	if err := s.DoesSessionSatisfyTravelRestrictions(r, se); err != nil {
+		toUpdate := *se
+		toUpdate.ContainsImpossibleTravel = true
+
+		if err := s.r.SessionPersister().UpsertSession(ctx, &toUpdate); err != nil {
+			return nil, fmt.Errorf("marking a session as invalid due to impossible travel: %v", err)
+		}
+
+		return nil, err
+	}
+
 	return se, nil
 }
 
@@ -376,6 +389,32 @@ func (s *ManagerHTTP) DoesSessionSatisfy(r *http.Request, sess *Session, request
 	}
 
 	return errors.Errorf("requested unknown aal: %s", requestedAAL)
+}
+
+func (s *ManagerHTTP) DoesSessionSatisfyTravelRestrictions(r *http.Request, sess *Session) (err error) {
+	_, span := s.r.Tracer(r.Context()).
+		Tracer().
+		Start(r.Context(), "sessions.ManagerHTTP.DoesSessionSatisfyTravelRestrictions")
+	defer otelx.End(span, &err)
+
+	coord, err := getCoordinatesFromRequest(r)
+	if err != nil {
+		return fmt.Errorf("getting coordinates from request: %v", err)
+	}
+
+	sessionCoords := mapDeviceInfoToCoordinates(sess.Devices)
+
+	toValidate := append(sessionCoords, CoordinatesWithLoginTime{
+		Longitude: coord.long,
+		Latitude:  coord.lat,
+		LoginTime: time.Now().UTC(),
+	})
+
+	if !s.r.SessionTravelValidator().IsValid(toValidate) {
+		return NewErrImpossibleTravel()
+	}
+
+	return nil
 }
 
 func (s *ManagerHTTP) SessionAddAuthenticationMethods(ctx context.Context, sid uuid.UUID, ams ...AuthenticationMethod) (err error) {
