@@ -42,6 +42,14 @@ func NewTravelValidator(opts ...ValidatorOptions) *travelValidator {
 	}
 }
 
+// IsValid validates incoming logins (coords with login time) on "impossible travels".
+// Every login is compared to each other to detect "unusual travels" which are not possible
+// to achieve for a given speed `maxAllowedTravelSpeed` (it's configured).
+// If "impossible travel" is detected, the function returns "false", otherwise "true".
+//
+// NOTE: I might assume it can be simplified:
+//	we could compare everything in one iteration, but it's just an assumption, so that's why I
+//	leave it as it is.
 func (tv *travelValidator) IsValid(logins []CoordinatesWithLoginTime) bool {
 	sort.Slice(logins, func(i, j int) bool {
 		return logins[i].LoginTime.After(logins[j].LoginTime)

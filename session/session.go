@@ -292,6 +292,9 @@ func (s *Session) SetSessionDeviceInformation(r *http.Request) {
 			Latitude:  coords.lat,
 			Longitude: coords.long,
 		}
+	} else {
+		// TODO: we might want to correctly log it or have some metrics (with alerts) to detect "the issue"
+		//	with CloudFlare headers in advance.
 	}
 
 	s.Devices = append(s.Devices, device)
